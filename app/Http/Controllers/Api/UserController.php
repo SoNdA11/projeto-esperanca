@@ -32,8 +32,6 @@ class UserController extends Controller
             ], 200);
     }
 
-
-
     /**
      * Exibe os detalhes de um usuário específico
      *
@@ -43,18 +41,21 @@ class UserController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
 
-    public function show(User $user): JsonResponse
-    {
-        // Retorna os usuários recuperados como uma repostas JSON
-        return response()->json([
-            'status' => true,
-            'user' => $user,
-            ], 200);
-    }
-
-
-
-
+     public function show($email): JsonResponse
+     {
+         $user = User::where('email', $email)->first();
+         if ($user) {
+             return response()->json([
+                 'status' => true,
+                 'user' => $user,
+             ], 200);
+         } else {
+             return response()->json([
+                 'status' => false,
+                 'message' => 'Usuário não encontrado!',
+             ], 404);
+         }
+     }
 
 
     /**
@@ -64,39 +65,30 @@ class UserController extends Controller
     */
     public function store(UserRequest $request): JsonResponse
     {
-        // Iniciar a transação
         DB::beginTransaction();
 
-        Try{
-
+        try {
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
-                'password' => $request->password,
+                'password' => bcrypt($request->password), // Lembre-se de hashear a senha
             ]);
 
-            // Operação realizada com sucesso
             DB::commit();
             return response()->json([
                 'status' => true,
                 'user' => $user,
                 'message' => "Usuário cadastrado com sucesso!",
-                ], 201);
+            ], 201);
 
-        }catch(Exception $e){
-
-            // Operação não concluída com êxito
+        } catch (Exception $e) {
             DB::rollBack();
-
-            // Retorna uma mensagem de erro com status 400
             return response()->json([
                 'status' => false,
                 'message' => "Usuário não cadastrado!",
-                ], 400);
-
+            ], 400);
         }
     }
-
 
 
 
@@ -113,51 +105,41 @@ class UserController extends Controller
      * @param  \App\Models\User  $user O objeto do usuário a ser atualizado
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(UserRequest $request, User $user): JsonResponse
-    {
 
-        DB::beginTransaction();
-
-        try{
-            $user -> update([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => $request->password,
-            ]);
-
-         // Operação realizada com sucesso
-         DB::commit();
-        return response()->json([
-        'status' => true,
-        'user' => $user,
-        'message' => "Usuário editado com sucesso!",
-        ], 200);
-
-
-        }catch(Exception $e){
-            // Operação não concluída com êxito
-            DB::rollBack();
-
-            // Retorna uma mensagem de erro com status 400
-            return response()->json([
-                'status' => false,
-                'message' => "Usuário não editado!",
-                ], 400);
-        }
-        return response()->json([
-            'status' => true,
-            'user' => $request,
-            'message' => "Usuário editado com sucesso!",
-            ], 200);
-    }
-
-
-
-
-
-
-
-
+     public function update(UserRequest $request, $email): JsonResponse
+     {
+         DB::beginTransaction();
+ 
+         try {
+             $user = User::where('email', $email)->first();
+             if ($user) {
+                 $user->update([
+                     'name' => $request->name,
+                     'email' => $request->email,
+                     'password' => bcrypt($request->password), // Lembre-se de hashear a senha
+                 ]);
+ 
+                 DB::commit();
+                 return response()->json([
+                     'status' => true,
+                     'user' => $user,
+                     'message' => "Usuário editado com sucesso!",
+                 ], 200);
+             } else {
+                 return response()->json([
+                     'status' => false,
+                     'message' => "Usuário não encontrado!",
+                 ], 404);
+             }
+ 
+         } catch (Exception $e) {
+             DB::rollBack();
+             return response()->json([
+                 'status' => false,
+                 'message' => "Usuário não editado!",
+             ], 400);
+         }
+     }
 
     /**
      * Exclui um usuário existente do banco de dados
@@ -165,35 +147,31 @@ class UserController extends Controller
      * @param  \App\Models\User  $user O objeto do usuário a ser excluído
      * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy(User $user): JsonResponse
-    {
-        try{
-            // Apagar o registro no banco de dados
-            $user->delete();
 
-            // Retorna os dados do usário apagado e uma mensagem de sucesso com status 200
-            return response()->json([
-                'status' => true,
-                'user' => $user,
-                'message' => "Usuário excluído com sucesso!",
-                ], 200);
-
-        }catch(Exception $e){
-            // Retorna uma mensagem de erro com status 400
-            return response()->json([
-                'status' => false,
-                'message' => "Usuário não apagado!",
-                ], 400);
-        }
-    }
-
-
-
-
-
-
-
-
-
+     public function destroy($email): JsonResponse
+     {
+         try {
+             $user = User::where('email', $email)->first();
+             if ($user) {
+                 $user->delete();
+                 return response()->json([
+                     'status' => true,
+                     'user' => $user,
+                     'message' => "Usuário excluído com sucesso!",
+                 ], 200);
+             } else {
+                 return response()->json([
+                     'status' => false,
+                     'message' => "Usuário não encontrado!",
+                 ], 404);
+             }
+ 
+         } catch (Exception $e) {
+             return response()->json([
+                 'status' => false,
+                 'message' => "Usuário não apagado!",
+             ], 400);
+         }
+     }
 
 }
